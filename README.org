@@ -1,0 +1,41 @@
+#+title: books.el - Digital Book Management
+#+author: jvdydev
+
+Small package to manage your digital book collection from within Emacs.
+Compatible with most file formats (see =man exiftool=).
+
+Based on an original project I wrote in =Common Lisp= with ncurses.
+
+* Installation
+** Dependencies
+System dependencies:
+- =exiftool= in =$PATH= (to read metadata)
+- a reader compatible with your book format (like =Emacs= or =zathura=)
+
+There are no dependencies to other Emacs packages.
+
+** Package installation
+With Emacs 29 or newer, =books.el= can be installed using =package-vc=:
+
+#+begin_src emacs-lisp
+(package-vc-install "https://github.com/jvdydev/books.el.git")
+#+end_src
+
+* Usage & Configuration
+To open the book management buffer, run =M-x books=.
+
+The package can be configured by customizing some variables.
+Set the directory to look for books:
+#+begin_src emacs-lisp
+(customize-set-variable 'books-book-directory "/path/to/books/dir")
+#+end_src
+
+To set the allowed extensions (see =exiftool= manual for supported formats):
+#+begin_src emacs-lisp
+(customize-set-variable 'books-book-file-extensions '("pdf" "epub"))
+#+end_src
+
+To set the viewer application/function (default is =#'find-file=):
+#+begin_src emacs-lisp
+(customize-set-variable 'books-viewer "zathura")
+#+end_src
