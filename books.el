@@ -57,14 +57,78 @@ Can either be an Emacs Lisp function (like find-file) or a string naming an exec
   :group 'books
   :type 'function)
 
+(defcustom books-sort-column "Title"
+  "Column used for sorting entries. See `books--default-narrow-list' for options."
+  :group 'books
+  :type 'string
+  :options books--default-narrow-list)
+
+(defcustom books-cache-file (expand-file-name "books.cache" user-emacs-directory)
+  "File to cache book entries for speedy buffer loading."
+  :group 'books
+  :type 'string)
+
 ;;; Caching layer
 (defvar books--cache nil
   "Books cache.")
 
-(defun books--build-cache ()
-  (setq books--cache
-        (mapcar (lambda (f) (books--item-to-row (books--file-metadata f)))
-                (books--list-book-files))))
+(defun books--write-cache-to-file ()
+  "Write the current `books--cache' state to file.
+This overwrites any cached data in the file."
+  (with-temp-file books-cache-file
+    (insert "(setq books--cache '(\n")
+    (mapc (lambda (i) (insert (format "%S\n" i))) books--cache)
+    (insert "))")))
+
+(defun books--load-cache-from-file ()
+  "Load cached books from file.
+Will not change books--cache if the file is missing."
+  (when (file-exists-p books-cache-file)
+    (with-temp-buffer "*books-cache-loader*"
+                      (insert-file-contents books-cache-file)
+                      (eval-buffer))))
+
+(defun books--sort-book (book other)
+  "Sort books based on `books-sort-column'.
+To be used as predicate for `sort'."
+  (let ((prop (cond
+               ((string-equal books-sort-column "Title")
+                :title)
+               ((string-equal books-sort-column "Author")
+                :author)
+               ((string-equal books-sort-column "File Name")
+                :file-name)
+               ((string-equal books-sort-column "Page Count")
+                :page-count)
+               (t
+                (user-error (format "Unknown sorting column: %s" books-sort-column))))))
+    (funcall #'string<
+             (plist-get book prop)
+             (plist-get other prop))))
+
+(defun books--build-cache (&optional force)
+  "Load and/or rebuild the books cache.
+If FORCE is non-nil, rebuild the entire book cache without using existing information."
+  (when force
+    (setq books--cache nil)
+    (delete-file books-cache-file))
+
+  (message "Building books cache ...")
+  (books--load-cache-from-file)
+  (let* ((cached-books
+          (mapcar (lambda (b) (plist-get b :file-name)) books--cache))
+         (uncached-books
+          (cl-remove-if (lambda (b) (member b cached-books)) (books--list-book-files))))
+    (if uncached-books
+        (message "Caching new books: %s" uncached-books)
+      (message "Cache up to date"))
+    (setq books--cache (sort
+                        (append books--cache
+                                (mapcar (lambda (f) (books--file-metadata f))
+                                        uncached-books))
+                        #'books--sort-book))
+    (books--write-cache-to-file))
+  (message "Books cache built"))
 
 ;;; Helper functions for processing
 (defun books--split-string (string &optional separator omit-nulls trim limit)
@@ -96,13 +160,12 @@ This behaves similarly to `str:split' for Common Lisp."
 (defun books--items-to-plist (items)
   "Convert list of lists to plist."
   (flatten-list
-   (mapcar
-    (lambda (e)
-      (append
-       (list
-        (intern-soft (concat ":" (string-replace " " "-" (downcase (car e))))))
-       (cdr e)))
-    items)))
+   (mapcar (lambda (e)
+             (append
+              (list (intern-soft
+                     (concat ":" (string-replace " " "-" (downcase (car e))))))
+              (cdr e)))
+           items)))
 
 (defun books--parse-exiftool-output (output)
   "Parse exiftool output for a single file.
@@ -151,8 +214,9 @@ Return a plist containing the data parsed and narrowed."
 (define-derived-mode books-mode tabulated-list-mode "books"
   "Books Mode"
   (let ((columns [("Author" 25) ("Title" 50) ("File" 50) ("Pages" 15)])
-        (rows books--cache))
+        (rows (mapcar #'books--item-to-row books--cache)))
     ;; Set up buffer
+    (switch-to-buffer "*books*")
     (buffer-disable-undo)
     (kill-all-local-variables)
     (setq truncate-lines t)
@@ -166,14 +230,11 @@ Return a plist containing the data parsed and narrowed."
     (tabulated-list-init-header)
     (tabulated-list-print)))
 
-
 ;;;; Runners
 (defun books ()
   "Open a new buffer with books-mode."
   (interactive)
-  (unless books--cache
-    (message "Building book cache ...")
-    (books--build-cache))
+  (books--build-cache)
   (switch-to-buffer "*books*")
   (books-mode)
   (message "Opening books"))
