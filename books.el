@@ -156,8 +156,10 @@ This behaves similarly to `str:split' for Common Lisp."
 ;;; Exiftool
 (defun books--run-exiftool (filename)
   "Run exiftool on FILENAME in BOOKS-BOOK-DIRECTORY."
-  (shell-command-to-string
-   (concat "exiftool " books-book-directory filename)))
+  (if (executable-find "exiftool")
+      (shell-command-to-string
+       (concat "exiftool " books-book-directory filename))
+    (user-error "Error: Missing external dependency \"exiftool\"")))
 
 (defun books--items-to-plist (items)
   "Convert list of lists to plist."
