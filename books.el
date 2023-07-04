@@ -38,7 +38,9 @@
 
 ;;; Customization
 (defgroup books nil
-  "Books.el: Digital Book Management for Emacs"
+  "Digital Book Management for Emacs"
+  :tag "Books"
+  :group 'applications
   :prefix "books-")
 
 (defcustom books-book-directory "~/Books/"
