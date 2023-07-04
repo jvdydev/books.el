@@ -121,9 +121,6 @@ If FORCE is non-nil, rebuild the entire book cache without using existing inform
           (mapcar (lambda (b) (plist-get b :file-name)) books--cache))
          (uncached-books
           (cl-remove-if (lambda (b) (member b cached-books)) (books--list-book-files))))
-    (if uncached-books
-        (message "Caching new books: %s" uncached-books)
-      (message "Cache up to date"))
     (setq books--cache (sort
                         (append books--cache
                                 (mapcar (lambda (f) (books--file-metadata f))
