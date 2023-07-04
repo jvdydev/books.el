@@ -32,9 +32,9 @@
 (require 'subr-x)
 
 ;;; Constants
-(defconst books--default-narrow-list
+(defconst books--column-names
   '("Title" "Author" "File Name" "Page Count")
-  "List used to narrow results parsed from running exiftool.")
+  "List of columns parsed from running exiftool.")
 
 ;;; Customization
 (defgroup books nil
@@ -58,10 +58,10 @@ Can either be an Emacs Lisp function (like find-file) or a string naming an exec
   :type 'function)
 
 (defcustom books-sort-column "Title"
-  "Column used for sorting entries. See `books--default-narrow-list' for options."
+  "Column used for sorting entries. See `books--column-names' for options."
   :group 'books
   :type 'string
-  :options books--default-narrow-list)
+  :options books--column-names)
 
 (defcustom books-cache-file (expand-file-name "books.cache" user-emacs-directory)
   "File to cache book entries for speedy buffer loading."
