@@ -232,6 +232,7 @@ Return a plist containing the data parsed and narrowed."
     (tabulated-list-print)))
 
 ;;;; Runners
+;;;###autoload
 (defun books ()
   "Open a new buffer with books-mode."
   (interactive)
